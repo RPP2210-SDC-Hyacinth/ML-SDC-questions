@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest --detectOpenHandles",
+    "server": "nodemon ./server"
   },
   "repository": {
     "type": "git",
@@ -23,8 +24,10 @@
     "eslint": "^8.38.0",
     "express": "^4.18.2",
     "jest": "^29.5.0",
+    "jest-cli": "^29.5.0",
     "nodemon": "^2.0.22",
     "pg": "^8.10.0",
-    "pg-promise": "^11.4.3"
+    "pg-promise": "^11.4.3",
+    "supertest": "^6.3.3"
   }
 }
