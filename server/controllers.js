@@ -3,7 +3,8 @@ const connectDb = require('./db.js')
 //http://localhost:3000/qa/questions/?product_id=3&count=5&page=3
 // LIMIT ${req.query.count} OFFSET ${req.query.page}
 exports.getQuestions = (req,res) => {
-  console.log('type', typeof req.query.product_id)
+  req.query.product_id = Number(req.query.product_id)
+  // console.log('type', typeof req.query.product_id)
   let count = req.query.count || 5;
   let page = req.query.page || 1;
   connectDb.query(
@@ -34,11 +35,11 @@ exports.getQuestions = (req,res) => {
     ))`
   )
   .then((data) => {
-    console.log('data from getQ', data.rows[0].json_build_object)
+    // console.log('data from getQ', data.rows[0].json_build_object)
   res.send(data.rows[0].json_build_object)
   })
   .catch((err) => {
-    console.log('err', err)
+    console.log('err getting q', err)
   })
 }
 
@@ -85,6 +86,7 @@ exports.addQuestions = (req,res) => {
 
   console.log('here', JSON.stringify(req.body.body))
   let prodId = Number(req.body.product_id)
+  console.log('pid', prodId)
   // console.log('req body', JSON.stringify(req.body))
   console.log('pid', prodId)
   let date_written = new Date().toISOString();
@@ -104,8 +106,8 @@ exports.addQuestions = (req,res) => {
 
 //http://localhost:3000/qa/questions/1/answers
 exports.addAnswer = (req, res) => {
-    console.log('param?', req.params.question_id)
-    console.log('req body', JSON.stringify(req.body))
+    // console.log('param?', req.params.question_id)
+    // console.log('req body', JSON.stringify(req.body))
     let options = [req.params.question_id, req.body.body, req.body.name, req.body.email, 0]
     connectDb.query(
     `INSERT INTO answers (question_id, body, answerer_name, answerer_email, helpful) VALUES ($1, $2, $3, $4, $5) RETURNING id`, options
@@ -114,7 +116,7 @@ exports.addAnswer = (req, res) => {
     // console.log('data', data)
 
     // `INSERT INTO answers_photos (answer_id, url) VALUES (${data.rows[0].id}, (json_array_elements_text(${JSON.stringify(req.body.photos)})))`
-    console.log('ty', req.body.photos)
+    // console.log('ty', req.body.photos)
     if (req.body.photos.length > 0) {
       let parsed = req.body.photos.split(',')
 
@@ -176,7 +178,7 @@ exports.questionReport = (req, res) => {
     `SELECT * from questions where question_id = ${req.params.question_id}`
   )
   .then((data) => {
-    console.log('data', data.rows[0].reported)
+    // console.log('data', data.rows[0].reported)
     connectDb.query(
       `UPDATE questions SET reported = ${true} where question_id = ${req.params.question_id}`
     )
