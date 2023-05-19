@@ -18,7 +18,16 @@ CREATE TABLE IF NOT EXISTS answers_photos (id SERIAL PRIMARY KEY NOT NULL, answe
 
 ALTER TABLE answers ALTER COLUMN date_written TYPE varchar USING to_char(to_timestamp(date_written/1000), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
 
-SELECT setval ('questions_id_seq', (SELECT max(question_id) from questions));
+ALTER TABLE questions ALTER COLUMN date_written TYPE varchar USING to_char(to_timestamp(date_written/1000), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+
+ALTER TABLE questions RENAME body TO question_body
+ALTER TABLE questions RENAME id TO question_id
+ALTER TABLE questions RENAME helpful TO question_helpfulness
+
+
+SELECT setval ('answers_id_seq', (SELECT max(id) from answers));
+
+SELECT setval ('questions_id_seq', (SELECT max(id) from questions));
 
 SELECT setval ('answers_photos_id_seq', (SELECT max(id) from answers_photos));
 
