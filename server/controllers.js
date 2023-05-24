@@ -1,46 +1,75 @@
 const connectDb = require('./db.js')
+const redis = require('redis')
+
+
+let redisClient;
+
+(async () => {
+  redisClient = redis.createClient();
+  redisClient.on("error", (error) => console.error(`Error : ${error}`));
+  await redisClient.connect();
+})();
 
 //http://localhost:3000/qa/questions/?product_id=3&count=5&page=3
 // LIMIT ${req.query.count} OFFSET ${req.query.page}
-exports.getQuestions = (req,res) => {
-  req.query.product_id = Number(req.query.product_id)
-  // console.log('type', typeof req.query.product_id)
-  let count = req.query.count || 5;
-  let page = req.query.page || 1;
-  connectDb.query(
-  `SELECT json_build_object(
-    'product_id', ${Number(req.query.product_id)},
-    'results', (WITH res AS (SELECT * from questions WHERE product_id = ${Number(req.query.product_id)} LIMIT ${count} OFFSET ${page})
-      SELECT json_agg(json_build_object(
-        'question_id', res.question_id,
-        'question_body', res.question_body,
-        'question_date', res.date_written,
-        'asker_name', res.asker_name,
-        'question_helpfulness', res.question_helpfulness,
-        'reported', res.reported,
-        'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object(
-          'id', answers.id,
-          'body', answers.body,
-          'date', answers.date_written,
-          'answerer_name', answers.answerer_name,
-          'helpfulness', answers.helpful,
-          'photos', COALESCE((SELECT json_agg(json_build_object(
-            'id', answers_photos.id,
-            'url', answers_photos.url
+exports.getQuestions = async (req,res) => {
+  // let results;
+  try {
+    const questions = req.query.product_id
+    const cacheResults = await redisClient.get(`questions?product_id=${questions}`);
+    if (cacheResults) {
+     return JSON.parse(cacheResults);
+    } else {
+    req.query.product_id = Number(req.query.product_id)
+    // console.log('type', typeof req.query.product_id)
+    let count = req.query.count || 5;
+    let page = req.query.page || 1;
+    connectDb.query(
+    `SELECT json_build_object(
+      'product_id', ${Number(req.query.product_id)},
+      'results', (WITH res AS (SELECT * from questions WHERE product_id = ${Number(req.query.product_id)} LIMIT ${count} OFFSET ${page})
+        SELECT json_agg(json_build_object(
+          'question_id', res.question_id,
+          'question_body', res.question_body,
+          'question_date', res.date_written,
+          'asker_name', res.asker_name,
+          'question_helpfulness', res.question_helpfulness,
+          'reported', res.reported,
+          'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object(
+            'id', answers.id,
+            'body', answers.body,
+            'date', answers.date_written,
+            'answerer_name', answers.answerer_name,
+            'helpfulness', answers.helpful,
+            'photos', COALESCE((SELECT json_agg(json_build_object(
+              'id', answers_photos.id,
+              'url', answers_photos.url
+            ))
+            FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
           ))
-          FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
-        ))
-        FROM answers WHERE answers.question_id = res.question_id), '{}')
-      )) FROM res
-    ))`
-  )
-  .then((data) => {
-    // console.log('data from getQ', data.rows[0].json_build_object)
-  res.send(data.rows[0].json_build_object)
-  })
-  .catch((err) => {
-    console.log('err getting q', err)
-  })
+          FROM answers WHERE answers.question_id = res.question_id), '{}')
+        )) FROM res
+      ))`
+    )
+    .then((data) => {
+      if (!data) {
+        throw data;
+      }
+      redisClient.set(questions, JSON.stringify(data.rows[0].json_build_object));
+      // console.log('data from getQ', data.rows[0].json_build_object)
+    res.status(200).send(data.rows[0].json_build_object)
+    })
+    .catch((err) => {
+      console.log('err getting q', err)
+      res.status(404).send(err)
+    })
+  }
+
+} catch (error) {
+  console.error(error);
+  res.status(404).send("Data unavailable");
+}
+
 }
 
 //http://localhost:3000/qa/questions/1/answers/?count=5&page=3
@@ -69,14 +98,18 @@ let page = req.query.page || 1;
     ))`
   )
   .then((data) => {
+    if (!data) {
+      throw data;
+    }
     // console.log('ddd', data.rows[0].json_build_object.results)
     if (data.rows[0].json_build_object.results === null) {
       data.rows[0].json_build_object.results = {}
     }
-    res.send(data.rows[0].json_build_object)
+    res.status(200).send(data.rows[0].json_build_object)
   })
   .catch((err) => {
     console.log('i cannot find answers', err)
+    res.status(404).send(err)
   })
 }
 
@@ -97,10 +130,11 @@ exports.addQuestions = (req,res) => {
   )
   .then((data) => {
     // console.log('data', data)
-    res.sendStatus(204)
+    res.status(204)
   })
   .catch((err) => {
     console.log('i cannot add questions', err)
+    res.status(404).send(err)
   })
 }
 
@@ -130,6 +164,7 @@ exports.addAnswer = (req, res) => {
         )
         .catch((err2) => {
           console.log('this is err2', err2)
+          res.status(404).send(err)
         })
       })
     }
@@ -143,7 +178,7 @@ exports.addAnswer = (req, res) => {
     //     console.log('this is err2', err2)
     //   })
     // })
-    res.sendStatus(201)
+    res.status(201)
   })
   .catch((err) => {
     console.log('i cannot add answers', err)
@@ -162,7 +197,7 @@ exports.questionHelpful = (req, res) => {
       `UPDATE questions SET question_helpfulness = ${increaseHelpfulness} where question_id = ${req.params.question_id}`
     )
     .then((data2) => {
-      res.sendStatus(204)
+      res.status(204)
     })
     .catch((err2) => {
       console.log('err2', err2)
@@ -170,6 +205,7 @@ exports.questionHelpful = (req, res) => {
   })
   .catch((err) => {
     console.log('i cannot update question helpfulness', err)
+    res.status(400).send(err)
   })
 }
 
@@ -183,7 +219,7 @@ exports.questionReport = (req, res) => {
       `UPDATE questions SET reported = ${true} where question_id = ${req.params.question_id}`
     )
     .then((data2) => {
-      res.sendStatus(204)
+      res.status(204)
     })
     .catch((err2) => {
       console.log('err2', err2)
@@ -191,6 +227,7 @@ exports.questionReport = (req, res) => {
   })
   .catch((err) => {
     console.log('i cannot report', err)
+    res.status(400).send(err)
   })
 }
 
@@ -205,10 +242,11 @@ exports.answerHelpful = (req, res) => {
       `UPDATE answers SET helpful = ${increaseHelpfulness} where id = ${req.params.answer_id}`
     )
     .then((data2) => {
-      res.sendStatus(204)
+      res.status(204)
     })
     .catch((err2) => {
       console.log('err2', err2)
+      res.status(400).send(err)
     })
   })
   .catch((err) => {
@@ -226,14 +264,16 @@ exports.answerReport = (req, res) => {
       `UPDATE answers SET reported = ${true} where id = ${req.params.answer_id}`
     )
     .then((data2) => {
-      res.sendStatus(204)
+      res.status(204)
     })
     .catch((err2) => {
       console.log('err2', err2)
+      res.status(400).send(err2)
     })
   })
   .catch((err) => {
     console.log('i cannot report', err)
+    res.status(400).send(err)
   })
 }
 

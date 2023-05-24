@@ -1,12 +1,17 @@
+require('newrelic');
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const controllers = require('./controllers.js');
 const bodyParser = require('body-parser')
 const app = express()
-const port = 3000
+const port = 3001
 
 // app.use(bodyParser.urlencoded({ extended: false }))
+app.use(`/${process.env.LOADER}`, (req,res) => {
+  res.send(process.env.LOADER)
+})
+
 app.use(express.json());
 
 

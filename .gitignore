@@ -4,3 +4,4 @@ Mongodb.js
 PostgreSQL.js
 coverage
 sdc-hyacinth-ml.pem
+.dockerignore

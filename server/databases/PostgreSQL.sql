@@ -24,6 +24,11 @@ ALTER TABLE questions RENAME body TO question_body
 ALTER TABLE questions RENAME id TO question_id
 ALTER TABLE questions RENAME helpful TO question_helpfulness
 
+ALTER TABLE questions ALTER COLUMN date_written SET DEFAULT now();
+ALTER TABLE answers ALTER COLUMN date_written SET DEFAULT now();
+
+ALTER TABLE questions ALTER COLUMN reported SET DEFAULT false;
+ALTER TABLE answers ALTER COLUMN reported SET DEFAULT false;
 
 SELECT setval ('answers_id_seq', (SELECT max(id) from answers));
 

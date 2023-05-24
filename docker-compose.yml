@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+  db:
+    image: midorili/postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+  api:
+    container_name: questions-api
+    build:
+      context: ./
+      # target: production
+    image: questions-api
+    depends_on:
+      - db
+    ports:
+      - 3001:3001
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: questions
+    links:
+      - db
+    volumes:
+      - "./:/src"
+volumes:
+  db:
+    driver: local

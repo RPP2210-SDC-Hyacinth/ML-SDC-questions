@@ -7,12 +7,12 @@ export const options = {
     contacts:{
         executor: 'constant-arrival-rate',
         // starts 30 iteration per timeUnit or 1 second
-        rate: 500,
+        rate: 300,
         timeUnit: '1s', // 500 iterations per second, i.e. 500 RPS
         //duration launches every 1m
-        duration: '1m',
+        duration: '2m',
         preAllocatedVUs: 2, // how large the initial pool of VUs would be, what is available to the test at the beginning
-        maxVUs: 1000, // if the preAllocatedVUs are not enough, we can initialize more
+        maxVUs: 700, // if the preAllocatedVUs are not enough, we can initialize more
       },
 
   },
@@ -28,21 +28,21 @@ let min = 900009;
 let max =  1000011;
 
   let id = Math.floor(Math.random() * (max - min + 1) + min);
-    const res = http.get(`http://localhost:3000/qa/questions?product_id=${id}&count=5&page=1`);
+    const res = http.get(`http://localhost:3001/qa/questions?product_id=${id}`);
     check(res, {'status was 200': (r) => r.status === 200})
     sleep(1);
   }
 //GET Answers
 
-export default function () {
-let min = 3167079;
-let max = 3518977;
+// export default function () {
+// let min = 3167079;
+// let max = 3518977;
 
-let id = Math.floor(Math.random() * (max - min + 1) + min);
-  const res = http.get(`http://localhost:3000/qa/questions/${id}/answers/?count=5&page=1`);
-  check(res, {'status was 200': (r) => r.status === 200})
-  sleep(1);
-}
+// let id = Math.floor(Math.random() * (max - min + 1) + min);
+//   const res = http.get(`http://localhost:3000/qa/questions/${id}/answers/?count=5&page=1`);
+//   check(res, {'status was 200': (r) => r.status === 200})
+//   sleep(1);
+// }
 
 
 
