@@ -14,60 +14,114 @@ let redisClient;
 // LIMIT ${req.query.count} OFFSET ${req.query.page}
 exports.getQuestions = async (req,res) => {
   // let results;
-  try {
-    const questions = req.query.product_id
-    const cacheResults = await redisClient.get(`questions?product_id=${questions}`);
-    if (cacheResults) {
-     return JSON.parse(cacheResults);
-    } else {
-    req.query.product_id = Number(req.query.product_id)
-    // console.log('type', typeof req.query.product_id)
-    let count = req.query.count || 5;
-    let page = req.query.page || 1;
-    connectDb.query(
-    `SELECT json_build_object(
-      'product_id', ${Number(req.query.product_id)},
-      'results', (WITH res AS (SELECT * from questions WHERE product_id = ${Number(req.query.product_id)} LIMIT ${count} OFFSET ${page})
-        SELECT json_agg(json_build_object(
-          'question_id', res.question_id,
-          'question_body', res.question_body,
-          'question_date', res.date_written,
-          'asker_name', res.asker_name,
-          'question_helpfulness', res.question_helpfulness,
-          'reported', res.reported,
-          'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object(
-            'id', answers.id,
-            'body', answers.body,
-            'date', answers.date_written,
-            'answerer_name', answers.answerer_name,
-            'helpfulness', answers.helpful,
-            'photos', COALESCE((SELECT json_agg(json_build_object(
-              'id', answers_photos.id,
-              'url', answers_photos.url
-            ))
-            FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
-          ))
-          FROM answers WHERE answers.question_id = res.question_id), '{}')
-        )) FROM res
-      ))`
-    )
-    .then((data) => {
-      if (!data) {
-        throw data;
-      }
-      redisClient.set(questions, JSON.stringify(data.rows[0].json_build_object));
-      // console.log('data from getQ', data.rows[0].json_build_object)
-    res.status(200).send(data.rows[0].json_build_object)
-    })
-    .catch((err) => {
-      console.log('err getting q', err)
-      res.status(404).send(err)
-    })
-  }
+//   try {
+//     const questions = req.query.product_id
+//     const cacheResults = await redisClient.get(`questions?product_id=${questions}`);
+//     if (cacheResults) {
+//      return JSON.parse(cacheResults);
+//     } else {
+//     req.query.product_id = Number(req.query.product_id)
+//     // console.log('type', typeof req.query.product_id)
+    // let count = req.query.count || 5;
+    // let page = req.query.page || 1;
+//     connectDb.query(
+//     `SELECT json_build_object(
+//       'product_id', ${Number(req.query.product_id)},
+//       'results', (WITH res AS (SELECT * from questions WHERE product_id = ${Number(req.query.product_id)} LIMIT ${count} OFFSET ${page})
+//         SELECT json_agg(json_build_object(
+//           'question_id', res.question_id,
+//           'question_body', res.question_body,
+//           'question_date', res.date_written,
+//           'asker_name', res.asker_name,
+//           'question_helpfulness', res.question_helpfulness,
+//           'reported', res.reported,
+//           'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object(
+//             'id', answers.id,
+//             'body', answers.body,
+//             'date', answers.date_written,
+//             'answerer_name', answers.answerer_name,
+//             'helpfulness', answers.helpful,
+//             'photos', COALESCE((SELECT json_agg(json_build_object(
+//               'id', answers_photos.id,
+//               'url', answers_photos.url
+//             ))
+//             FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
+//           ))
+//           FROM answers WHERE answers.question_id = res.question_id), '{}')
+//         )) FROM res
+//       ))`
+//     )
+//     .then((data) => {
+//       if (!data) {
+//         throw data;
+//       }
+//       redisClient.set(questions, JSON.stringify(data.rows[0].json_build_object));
+//       // console.log('data from getQ', data.rows[0].json_build_object)
+//     res.status(200).send(data.rows[0].json_build_object)
+//     })
+//     .catch((err) => {
+//       console.log('err getting q', err)
+//       res.status(404).send(err)
+//     })
+//   }
+
+// } catch (error) {
+//   console.error(error);
+//   res.status(404).send("Data unavailable");
+// }
+
+try {
+  const questions = req.query.product_id
+  const cacheResults = await redisClient.get(`questions?product_id=${questions}`);
+  if (cacheResults) {
+   return JSON.parse(cacheResults);
+  } else {
+  req.query.product_id = Number(req.query.product_id)
+  // console.log('type', req.query.product_id)
+  let count = req.query.count || 5;
+  let page = req.query.page || 1;
+  connectDb.query(
+    `SELECT json_agg(json_build_object(
+      'question_id', questions.question_id,
+      'question_body', questions.question_body,
+      'question_date', questions.date_written,
+      'asker_name', questions.asker_name,
+      'question_helpfulness', questions.question_helpfulness,
+      'reported', questions.reported,
+      'answers', COALESCE((SELECT (json_object_agg(answers.id, json_build_object(
+        'id', answers.id,
+        'body', answers.body,
+        'date', answers.date_written,
+        'answerer_name', answers.answerer_name,
+        'helpfulness', answers.helpful,
+        'photos', COALESCE((SELECT json_agg(answers_photos.url) FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
+      ))) FROM answers WHERE answers.question_id = questions.question_id), '{}')
+      ))
+      FROM questions WHERE product_id = ${req.query.product_id} LIMIT ${count} OFFSET ${(page-1)*count}`
+
+)
+
+  .then((data) => {
+console.log('d', data.rows)
+    if (!data) {
+      throw data;
+    }
+    let dataObject = {product_id: req.query.product_id, results: data.rows[0].json_agg}
+    // redisClient.set(questions, JSON.stringify(dataObject));
+
+    // redisClient.set(questions, JSON.stringify(data.rows[0].json_build_object));
+    // console.log('data from getQ', data.rows[0].json_build_object)
+  res.status(200).send(dataObject)
+  })
+  .catch((err) => {
+    console.log('err getting q', err)
+    res.status(404).send(err)
+  })
+}
 
 } catch (error) {
-  console.error(error);
-  res.status(404).send("Data unavailable");
+console.error(error);
+res.status(404).send("Data unavailable");
 }
 
 }
@@ -315,3 +369,33 @@ exports.answerReport = (req, res) => {
 // .catch((err) => {
 //   console.log('i cannot find questions', err)
 // })
+
+
+// `SELECT json_build_object('product_id', 3,'results', (WITH res AS (SELECT * from questions WHERE product_id = 3 LIMIT 5 OFFSET 1) SELECT json_agg(json_build_object('question_id', res.question_id, 'question_body', res.question_body, 'question_date', res.date_written, 'asker_name', res.asker_name, 'question_helpfulness', res.question_helpfulness,'reported', res.reported, 'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object('id', answers.id, 'body', answers.body, 'date', answers.date_written, 'answerer_name', answers.answerer_name, 'helpfulness', answers.helpful, 'photos', COALESCE((SELECT json_agg(json_build_object('id', answers_photos.id, 'url', answers_photos.url)) FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]'))) FROM answers WHERE answers.question_id = res.question_id), '{}'))) FROM res);`
+
+
+// SELECT json_build_object(
+//   'product_id', 900009,
+//   'results', (WITH res AS (SELECT * from questions WHERE product_id = 900009 LIMIT 5 OFFSET 1)
+//     SELECT json_agg(json_build_object(
+//       'question_id', res.question_id,
+//       'question_body', res.question_body,
+//       'question_date', res.date_written,
+//       'asker_name', res.asker_name,
+//       'question_helpfulness', res.question_helpfulness,
+//       'reported', res.reported,
+//       'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object(
+//         'id', answers.id,
+//         'body', answers.body,
+//         'date', answers.date_written,
+//         'answerer_name', answers.answerer_name,
+//         'helpfulness', answers.helpful,
+//         'photos', COALESCE((SELECT json_agg(json_build_object(
+//           'id', answers_photos.id,
+//           'url', answers_photos.url
+//         ))
+//         FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
+//       ))
+//       FROM answers WHERE answers.question_id = res.question_id), '{}')
+//     )) FROM res
+//   ));

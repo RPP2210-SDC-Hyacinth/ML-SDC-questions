@@ -7,7 +7,7 @@ const bodyParser = require('body-parser')
 const app = express()
 const port = 3001
 
-// app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({ extended: false }))
 app.use(`/${process.env.LOADER}`, (req,res) => {
   res.send(process.env.LOADER)
 })
