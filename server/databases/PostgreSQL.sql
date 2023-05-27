@@ -41,3 +41,4 @@ CREATE INDEX product_id ON questions(product_id);
 CREATE INDEX answer_questions ON answers(question_id);
 
 CREATE INDEX photos_answers_id ON answers_photos(answer_id);
+

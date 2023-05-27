@@ -72,9 +72,9 @@ exports.getQuestions = async (req,res) => {
 
 try {
   const questions = req.query.product_id
-  const cacheResults = await redisClient.get(`questions?product_id=${questions}`);
+  const cacheResults = await redisClient.get(`product_id:${questions}`);
   if (cacheResults) {
-   return JSON.parse(cacheResults);
+   res.status(200).send(JSON.parse(cacheResults))
   } else {
   req.query.product_id = Number(req.query.product_id)
   // console.log('type', req.query.product_id)
@@ -98,16 +98,14 @@ try {
       ))) FROM answers WHERE answers.question_id = questions.question_id), '{}')
       ))
       FROM questions WHERE product_id = ${req.query.product_id} LIMIT ${count} OFFSET ${(page-1)*count}`
-
-)
+  )
 
   .then((data) => {
-console.log('d', data.rows)
     if (!data) {
-      throw data;
+    throw data;
     }
     let dataObject = {product_id: req.query.product_id, results: data.rows[0].json_agg}
-    // redisClient.set(questions, JSON.stringify(dataObject));
+    redisClient.set(`product_id:${questions}`, JSON.stringify(dataObject));
 
     // redisClient.set(questions, JSON.stringify(data.rows[0].json_build_object));
     // console.log('data from getQ', data.rows[0].json_build_object)
@@ -117,19 +115,24 @@ console.log('d', data.rows)
     console.log('err getting q', err)
     res.status(404).send(err)
   })
-}
-
-} catch (error) {
-console.error(error);
-res.status(404).send("Data unavailable");
-}
-
+  }
+  } catch (error) {
+  console.error(error);
+  res.status(404).send("Data unavailable");
+  }
 }
 
 //http://localhost:3000/qa/questions/1/answers/?count=5&page=3
-exports.getAnswers = (req, res) => {
+exports.getAnswers = async (req, res) => {
 let count = req.query.count || 5;
 let page = req.query.page || 1;
+// console.log('tye', typeof req.params.question_id)
+try {
+  const answers = req.params.question_id
+  const cacheResults = await redisClient.get(`question_id:${answers}`);
+  if (cacheResults) {
+   res.status(200).send(JSON.parse(cacheResults))
+  } else {
   connectDb.query(
     `SELECT json_build_object(
       'question', ${Number(req.params.question_id)},
@@ -159,12 +162,18 @@ let page = req.query.page || 1;
     if (data.rows[0].json_build_object.results === null) {
       data.rows[0].json_build_object.results = {}
     }
+    redisClient.set(`question_id:${answers}`, JSON.stringify(data.rows[0].json_build_object));
     res.status(200).send(data.rows[0].json_build_object)
   })
   .catch((err) => {
     console.log('i cannot find answers', err)
     res.status(404).send(err)
   })
+}
+} catch (error) {
+console.error(error);
+res.status(404).send("Data unavailable");
+}
 }
 
 //http://localhost:3000/qa/questions/
