@@ -17,10 +17,6 @@ connectDb.connect((err)=>{
     console.log('i have errr', err)
   } else {
     console.log('successfully connected')
-    // connectDb.query('SELECT * FROM questions where product_id = 1 limit 5')
-    // .then(data => {
-    //   console.log('data', data)
-    // })
   }
 })
 

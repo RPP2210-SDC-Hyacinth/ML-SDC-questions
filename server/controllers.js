@@ -13,62 +13,6 @@ let redisClient;
 //http://localhost:3000/qa/questions/?product_id=3&count=5&page=3
 // LIMIT ${req.query.count} OFFSET ${req.query.page}
 exports.getQuestions = async (req,res) => {
-  // let results;
-//   try {
-//     const questions = req.query.product_id
-//     const cacheResults = await redisClient.get(`questions?product_id=${questions}`);
-//     if (cacheResults) {
-//      return JSON.parse(cacheResults);
-//     } else {
-//     req.query.product_id = Number(req.query.product_id)
-//     // console.log('type', typeof req.query.product_id)
-    // let count = req.query.count || 5;
-    // let page = req.query.page || 1;
-//     connectDb.query(
-//     `SELECT json_build_object(
-//       'product_id', ${Number(req.query.product_id)},
-//       'results', (WITH res AS (SELECT * from questions WHERE product_id = ${Number(req.query.product_id)} LIMIT ${count} OFFSET ${page})
-//         SELECT json_agg(json_build_object(
-//           'question_id', res.question_id,
-//           'question_body', res.question_body,
-//           'question_date', res.date_written,
-//           'asker_name', res.asker_name,
-//           'question_helpfulness', res.question_helpfulness,
-//           'reported', res.reported,
-//           'answers', COALESCE((SELECT json_object_agg(answers.id, json_build_object(
-//             'id', answers.id,
-//             'body', answers.body,
-//             'date', answers.date_written,
-//             'answerer_name', answers.answerer_name,
-//             'helpfulness', answers.helpful,
-//             'photos', COALESCE((SELECT json_agg(json_build_object(
-//               'id', answers_photos.id,
-//               'url', answers_photos.url
-//             ))
-//             FROM answers_photos WHERE answers_photos.answer_id = answers.id), '[]')
-//           ))
-//           FROM answers WHERE answers.question_id = res.question_id), '{}')
-//         )) FROM res
-//       ))`
-//     )
-//     .then((data) => {
-//       if (!data) {
-//         throw data;
-//       }
-//       redisClient.set(questions, JSON.stringify(data.rows[0].json_build_object));
-//       // console.log('data from getQ', data.rows[0].json_build_object)
-//     res.status(200).send(data.rows[0].json_build_object)
-//     })
-//     .catch((err) => {
-//       console.log('err getting q', err)
-//       res.status(404).send(err)
-//     })
-//   }
-
-// } catch (error) {
-//   console.error(error);
-//   res.status(404).send("Data unavailable");
-// }
 
 try {
   const questions = req.query.product_id
@@ -223,7 +167,6 @@ exports.addAnswer = (req, res) => {
         let options2 = [data.rows[0].id, photo]
         connectDb.query(
           `INSERT INTO answers_photos (answer_id, url) VALUES ($1, $2)`, options2
-            // `INSERT INTO answers_photos (answer_id, url) VALUES (${data.rows[0].id}, ${photo})`
         )
         .catch((err2) => {
           console.log('this is err2', err2)
@@ -231,16 +174,6 @@ exports.addAnswer = (req, res) => {
         })
       })
     }
-    // parsed.forEach((photo) => {
-    //   let options2 = [data.rows[0].id, photo]
-    //   connectDb.query(
-    //     `INSERT INTO answers_photos (answer_id, url) VALUES ($1, $2)`, options2
-    //       // `INSERT INTO answers_photos (answer_id, url) VALUES (${data.rows[0].id}, ${photo})`
-    //   )
-    //   .catch((err2) => {
-    //     console.log('this is err2', err2)
-    //   })
-    // })
     res.status(201)
   })
   .catch((err) => {
