@@ -4,6 +4,9 @@
 
 This project replaced the legacy API for an e-commerce website with a more efficient backend system.
 
+## Tech Stack
+![](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black) ![](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white) ![](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![](https://img.shields.io/badge/Jest-323330?style=for-the-badge&logo=Jest&logoColor=white)
+
 ### Description
 
 This backend system architecture for a preexisting e-commerce web-portal focused on supporting the full dataset for the existing front-end architecture and performing at a rate of at least 1,000 client requests per second under a 1% error rate in production.
